@@ -6,7 +6,6 @@ import android.app.Application;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
@@ -60,9 +59,7 @@ public class RNPushNotificationHelper {
         notificationIntent.putExtra(RNPushNotificationPublisher.NOTIFICATION_ID, notificationID);
         notificationIntent.putExtras(bundle);
 
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(mApplication, notificationID, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        return pendingIntent;
+        return PendingIntent.getBroadcast(mApplication, notificationID, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
     public void sendNotificationScheduled(Bundle bundle) {
@@ -71,23 +68,26 @@ public class RNPushNotificationHelper {
             return;
         }
 
-        if (bundle.getString("message") == null) {
+        Double fireDateDouble = bundle.getDouble("fireDate", 0);
+        if (fireDateDouble == 0) {
             return;
         }
 
-        if (!bundle.containsKey("sendAt")) {
-            return;
-        }
+        long repeatInterval = (long) bundle.getDouble("repeatInterval", 0);
 
-        long sendAt = Long.parseLong(bundle.getString("sendAt"));
+        long fireDate = Math.round(fireDateDouble);
         long currentTime = System.currentTimeMillis();
 
-        Log.i("ReactSystemNotification", "sendAt: " + sendAt + ", Now Time: " + currentTime);
+        Log.i("ReactSystemNotification", "notificationId: " + bundle.getString("id")  + ", fireDate: " + fireDate + ", Now Time: " + currentTime + ", Repeat Interval: " + repeatInterval);
         PendingIntent pendingIntent = getScheduleNotificationIntent(bundle);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            getAlarmManager().setExact(AlarmManager.RTC_WAKEUP, sendAt, pendingIntent);
+        if (repeatInterval > 0) {
+            getAlarmManager().setInexactRepeating(AlarmManager.RTC_WAKEUP, fireDate, repeatInterval, pendingIntent);
         } else {
-            getAlarmManager().set(AlarmManager.RTC_WAKEUP, sendAt, pendingIntent);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                getAlarmManager().setExact(AlarmManager.RTC_WAKEUP, fireDate, pendingIntent);
+            } else {
+                getAlarmManager().set(AlarmManager.RTC_WAKEUP, fireDate, pendingIntent);
+            }
         }
     }
 
@@ -220,8 +220,24 @@ public class RNPushNotificationHelper {
 
         notificationManager.cancelAll();
 
-        Bundle b = new Bundle();
-        b.putString("id", "0");
-        getAlarmManager().cancel(getScheduleNotificationIntent(b));
+        // Bundle b = new Bundle();
+        // b.putString("id", "0");
+        // getAlarmManager().cancel(getScheduleNotificationIntent(b));
+    }
+
+    public void cancelNotificationScheduled(String id) {
+        Log.i("ReactSystemNotification", "cancel notification notificationId: " + id);
+
+        int notificationID = 0;
+        if ( id != null ) {
+            notificationID = Integer.parseInt(id);
+        } else {
+            notificationID = (int) System.currentTimeMillis();
+        }
+
+        Intent notificationIntent = new Intent(mApplication, RNPushNotificationPublisher.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(mApplication, notificationID, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+        getAlarmManager().cancel(pendingIntent);
+        pendingIntent.cancel();
     }
 }

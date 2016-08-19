@@ -93,7 +93,6 @@ public class RNPushNotification extends ReactContextBaseJavaModule {
 
     private void registerNotificationsReceiveNotification() {
         IntentFilter intentFilter = new IntentFilter("RNPushNotificationReceiveNotification");
-
         mReactContext.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -139,6 +138,11 @@ public class RNPushNotification extends ReactContextBaseJavaModule {
     @ReactMethod
     public void cancelAllLocalNotifications() {
         mRNPushNotificationHelper.cancelAll();
+    }
+
+    @ReactMethod
+    public void cancelScheduleLocalNotifications(String id) {
+        mRNPushNotificationHelper.cancelNotificationScheduled(id);
     }
 
     @ReactMethod

@@ -128,9 +128,12 @@ Notifications.localNotificationSchedule = function(details: Object) {
 	if ( Platform.OS === 'ios' ) {
 		this.handler.scheduleLocalNotification({
 			fireDate: details.date,
+			repeatInterval: (details.repeatInterval || 0),
 			alertBody: details.message
 		});
 	} else {
+		details.fireDate = details.date.getTime();
+		delete details.date;
 		this.handler.scheduleLocalNotification(details);
 	}
 };
@@ -202,6 +205,10 @@ Notifications.scheduleLocalNotification = function() {
 
 Notifications.cancelAllLocalNotifications = function() {
 	return this.callNative('cancelAllLocalNotifications', arguments);
+};
+
+Notifications.cancelScheduleLocalNotifications = function() {
+	return this.callNative('cancelScheduleLocalNotifications', arguments);
 };
 
 Notifications.setApplicationIconBadgeNumber = function() {
